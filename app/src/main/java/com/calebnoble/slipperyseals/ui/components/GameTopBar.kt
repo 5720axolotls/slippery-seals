@@ -14,8 +14,11 @@ fun GameTopBar(
     moveCount: Int,
     optimalMoves: Int,
     canUndo: Boolean,
+    canHint: Boolean,
+    isHintLoading: Boolean,
     onUndo: () -> Unit,
     onReset: () -> Unit,
+    onHint: () -> Unit,
     onBack: () -> Unit,
     onMenu: () -> Unit,
     modifier: Modifier = Modifier
@@ -36,6 +39,13 @@ fun GameTopBar(
             }
             TextButton(onClick = onReset, enabled = moveCount > 0) {
                 Text("Reset")
+            }
+            TextButton(onClick = onHint, enabled = canHint && !isHintLoading) {
+                if (isHintLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Hint")
+                }
             }
         }
 

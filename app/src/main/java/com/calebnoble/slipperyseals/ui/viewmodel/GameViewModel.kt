@@ -4,9 +4,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.calebnoble.slipperyseals.data.ProgressManager
 import com.calebnoble.slipperyseals.engine.GameEngine
 import com.calebnoble.slipperyseals.model.*
+import com.calebnoble.slipperyseals.solver.AStarSolver
+import com.calebnoble.slipperyseals.solver.Heuristics
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GameViewModel(
     private val levelData: LevelData,
@@ -15,9 +21,22 @@ class GameViewModel(
 
     private val wallSet: Set<Wall> = GameEngine.buildWallSet(levelData)
 
+    // The same A* solver used offline to generate levels, run live from the
+    // current board so hints stay correct even after the player has moved.
+    private val solver = AStarSolver(
+        name = "hint",
+        heuristic = Heuristics.combined(Heuristics.minAxisMoves(), Heuristics.unmatchedCount())
+    )
+
     var gameState by mutableStateOf(
         GameState(levelData = levelData, seals = levelData.seals)
     )
+        private set
+
+    var isHintLoading by mutableStateOf(false)
+        private set
+
+    var hintMessage by mutableStateOf<String?>(null)
         private set
 
     fun onCellTapped(position: Position) {
@@ -94,9 +113,51 @@ class GameViewModel(
 
     fun onUndo() {
         gameState.undo()?.let { gameState = it }
+        hintMessage = null
     }
 
     fun onReset() {
         gameState = GameState(levelData = levelData, seals = levelData.seals)
+        hintMessage = null
+    }
+
+    /**
+     * Solves from the current board and suggests the next optimal move: selects
+     * the relevant seal (so its move arrows appear) and posts a short message.
+     * The solve runs off the main thread since it can expand many nodes.
+     */
+    fun onHint() {
+        val state = gameState
+        if (state.isSolved || isHintLoading) return
+
+        isHintLoading = true
+        hintMessage = null
+        viewModelScope.launch {
+            val fromHere = levelData.copy(seals = state.seals)
+            val result = withContext(Dispatchers.Default) { solver.solve(fromHere) }
+            isHintLoading = false
+
+            val nextMove = result?.moves?.firstOrNull()
+            if (nextMove == null) {
+                hintMessage = "No solution from here — try Undo or Reset."
+                return@launch
+            }
+
+            selectSeal(nextMove.sealId)
+            val seal = state.seals.first { it.id == nextMove.sealId }
+            val color = seal.color.name.lowercase().replaceFirstChar { it.uppercase() }
+            hintMessage = "Hint: slide the $color seal ${arrowFor(nextMove.direction)}"
+        }
+    }
+
+    fun dismissHint() {
+        hintMessage = null
+    }
+
+    private fun arrowFor(direction: Direction): String = when (direction) {
+        Direction.UP -> "up ↑"
+        Direction.DOWN -> "down ↓"
+        Direction.LEFT -> "left ←"
+        Direction.RIGHT -> "right →"
     }
 }

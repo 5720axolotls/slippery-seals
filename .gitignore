@@ -13,3 +13,7 @@ local.properties
 # Solver build artifacts
 solver/*.so
 solver/profile_out
+
+# Python
+__pycache__/
+*.pyc

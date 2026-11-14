@@ -10,11 +10,13 @@ generate levels.
 ## Features
 
 - Jetpack Compose UI with Material 3 theming
-- Multiple level sets (tutorial, easy, medium, hard, expert) loaded from JSON
-  assets in `app/src/main/assets/levels/`
+- Multiple level sets (tutorial, easy, medium, hard, expert, classic) loaded from
+  JSON assets in `app/src/main/assets/levels/`
 - Progress tracking across levels
 - An A* solver (Kotlin in-app, plus a standalone Python/C toolchain) for
   verifying and generating puzzles
+- **Live hints** — the in-app A* solver runs from the current board to suggest
+  the next optimal move
 
 ## Requirements
 
@@ -92,3 +94,22 @@ solver/                        Standalone Python/C solver & level generation too
 The `solver/` directory contains a standalone toolchain for generating and
 verifying levels. It is independent of the Android build. See the scripts there
 (`generate.py`, `benchmark.py`, `astar.py`, `solver_native.c`) for usage.
+
+### Generating new levels
+
+`generate.py` creates random, verified-solvable boards and writes them in the
+same JSON format the app loads. For example, a 10×10 board with 4 seals, a single
+goal, and ~7 walls (the "Classic" set was built this way):
+
+```bash
+cd solver
+python3 generate.py medium --rows 10 --cols 10 --seals 4 --dests 1 --walls 7 \
+  --min-moves 5 --max-moves 12 -n 10 -o ../app/src/main/assets/levels/classic.json
+```
+
+Key flags: `--rows`/`--cols` (board size), `--seals`, `--dests` (goals),
+`--walls`, `--min-moves`/`--max-moves` (difficulty filter), `-n` (count),
+`-s` (seed). To add a brand-new set, write a new `*.json` file and add a matching
+entry to the `LevelSet` enum
+(`app/src/main/java/com/calebnoble/slipperyseals/model/LevelSet.kt`); the home
+screen picks it up automatically.

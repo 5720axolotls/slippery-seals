@@ -49,11 +49,43 @@ fun GameScreen(
             moveCount = gameState.moveCount,
             optimalMoves = levelData.optimalMoves,
             canUndo = gameState.history.isNotEmpty(),
+            canHint = !gameState.isSolved,
+            isHintLoading = viewModel.isHintLoading,
             onUndo = viewModel::onUndo,
             onReset = viewModel::onReset,
+            onHint = viewModel::onHint,
             onBack = onBack,
             onMenu = { showMenu = true }
         )
+
+        viewModel.hintMessage?.let { message ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = message,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    TextButton(onClick = viewModel::dismissHint) {
+                        Text("Dismiss")
+                    }
+                }
+            }
+        }
 
         if (levelData.instruction != null) {
             Text(
@@ -138,11 +170,11 @@ fun GameScreen(
                         Text("Back to Home")
                     }
                     TextButton(
-                        onClick = { },
+                        onClick = { showMenu = false; viewModel.onHint() },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = false
+                        enabled = !gameState.isSolved
                     ) {
-                        Text("Solution (coming soon)")
+                        Text("Show Hint")
                     }
                 }
             },

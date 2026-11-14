@@ -5,5 +5,6 @@ enum class LevelSet(val displayName: String, val fileName: String) {
     EASY("Easy", "easy.json"),
     MEDIUM("Medium", "medium.json"),
     HARD("Hard", "hard.json"),
-    EXPERT("Expert", "expert.json")
+    EXPERT("Expert", "expert.json"),
+    CLASSIC("Classic", "classic.json")
 }
