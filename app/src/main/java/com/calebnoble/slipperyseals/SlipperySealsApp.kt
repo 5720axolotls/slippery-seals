@@ -27,6 +27,9 @@ fun SlipperySealsApp(
                 onLevelSetSelected = { set ->
                     navController.navigate(NavRoute.LevelSetScreen.createRoute(set))
                 },
+                onPlayRandom = {
+                    navController.navigate(NavRoute.Game.createRoute(LevelSet.RANDOM, 0))
+                },
                 levelRepository = levelRepository,
                 progressManager = progressManager
             )
@@ -60,9 +63,13 @@ fun SlipperySealsApp(
             val levelIndex = backStackEntry.arguments?.getInt("levelIndex") ?: return@composable
             val levelSet = LevelSet.valueOf(setName)
             val levelCount = levelRepository.getLevels(levelSet).size
-            val sets = LevelSet.entries
-            val setIndex = sets.indexOf(levelSet)
-            val nextSet = sets.getOrNull(setIndex + 1)
+            // Random puzzles are standalone — don't auto-advance into another set.
+            val progressionSets = LevelSet.entries.filter { it != LevelSet.RANDOM }
+            val nextSet = if (levelSet == LevelSet.RANDOM) {
+                null
+            } else {
+                progressionSets.getOrNull(progressionSets.indexOf(levelSet) + 1)
+            }
 
             val onNextLevel: () -> Unit = when {
                 levelIndex + 1 < levelCount -> {

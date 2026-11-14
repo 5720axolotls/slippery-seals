@@ -6,5 +6,8 @@ enum class LevelSet(val displayName: String, val fileName: String) {
     MEDIUM("Medium", "medium.json"),
     HARD("Hard", "hard.json"),
     EXPERT("Expert", "expert.json"),
-    CLASSIC("Classic", "classic.json")
+    CLASSIC("Classic", "classic.json"),
+
+    // Backed by an in-memory, ephemeral level rather than a bundled asset.
+    RANDOM("Random", "")
 }

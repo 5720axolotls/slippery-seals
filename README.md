@@ -17,6 +17,8 @@ generate levels.
   verifying and generating puzzles
 - **Live hints** — the in-app A* solver runs from the current board to suggest
   the next optimal move
+- **Random Puzzle** — generate a fresh, solvable puzzle on-device at Easy/Medium/
+  Hard difficulty (ephemeral; each board is verified by the in-app solver)
 
 ## Requirements
 
