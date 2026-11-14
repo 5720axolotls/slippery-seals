@@ -1,0 +1,195 @@
+{
+  "levels": [
+    {
+      "id": "medium_01",
+      "rows": 7,
+      "cols": 7,
+      "walls": [
+        {
+          "row": 1,
+          "col": 3,
+          "side": "DOWN"
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "side": "LEFT"
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "side": "RIGHT"
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "side": "DOWN"
+        }
+      ],
+      "seals": [
+        {
+          "id": "s1",
+          "color": "RED",
+          "row": 0,
+          "col": 0
+        },
+        {
+          "id": "s2",
+          "color": "BLUE",
+          "row": 6,
+          "col": 6
+        },
+        {
+          "id": "s3",
+          "color": "GREEN",
+          "row": 0,
+          "col": 6
+        }
+      ],
+      "destinations": [
+        {
+          "color": "RED",
+          "row": 1,
+          "col": 3
+        },
+        {
+          "color": "BLUE",
+          "row": 3,
+          "col": 5
+        }
+      ],
+      "optimalMoves": 13,
+      "optimalSolution": [
+        {
+          "sealId": "s1",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s2",
+          "direction": "UP"
+        },
+        {
+          "sealId": "s1",
+          "direction": "RIGHT"
+        },
+        {
+          "sealId": "s2",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s1",
+          "direction": "LEFT"
+        },
+        {
+          "sealId": "s2",
+          "direction": "LEFT"
+        },
+        {
+          "sealId": "s3",
+          "direction": "LEFT"
+        },
+        {
+          "sealId": "s3",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s3",
+          "direction": "RIGHT"
+        },
+        {
+          "sealId": "s1",
+          "direction": "UP"
+        },
+        {
+          "sealId": "s3",
+          "direction": "UP"
+        },
+        {
+          "sealId": "s1",
+          "direction": "RIGHT"
+        },
+        {
+          "sealId": "s1",
+          "direction": "DOWN"
+        }
+      ]
+    },
+    {
+      "id": "medium_02",
+      "rows": 7,
+      "cols": 7,
+      "walls": [
+        {
+          "row": 2,
+          "col": 4,
+          "side": "DOWN"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "side": "RIGHT"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "side": "DOWN"
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "side": "LEFT"
+        }
+      ],
+      "seals": [
+        {
+          "id": "s1",
+          "color": "RED",
+          "row": 0,
+          "col": 3
+        },
+        {
+          "id": "s2",
+          "color": "BLUE",
+          "row": 3,
+          "col": 0
+        },
+        {
+          "id": "s3",
+          "color": "GREEN",
+          "row": 6,
+          "col": 6
+        }
+      ],
+      "destinations": [
+        {
+          "color": "GREEN",
+          "row": 5,
+          "col": 5
+        }
+      ],
+      "optimalMoves": 5,
+      "optimalSolution": [
+        {
+          "sealId": "s1",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s3",
+          "direction": "UP"
+        },
+        {
+          "sealId": "s1",
+          "direction": "RIGHT"
+        },
+        {
+          "sealId": "s3",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s3",
+          "direction": "LEFT"
+        }
+      ]
+    }
+  ]
+}

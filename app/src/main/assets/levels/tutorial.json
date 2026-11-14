@@ -1,0 +1,68 @@
+{
+  "levels": [
+    {
+      "id": "tutorial_01",
+      "rows": 3,
+      "cols": 3,
+      "walls": [],
+      "seals": [
+        {"id": "s1", "color": "RED", "row": 1, "col": 0}
+      ],
+      "destinations": [
+        {"color": "RED", "row": 2, "col": 2}
+      ],
+      "optimalMoves": 2,
+      "optimalSolution": [
+        {"sealId": "s1", "direction": "RIGHT"},
+        {"sealId": "s1", "direction": "DOWN"}
+      ],
+      "instruction": "Tap the seal, then tap an arrow to slide it onto the star."
+    },
+    {
+      "id": "tutorial_02",
+      "rows": 3,
+      "cols": 3,
+      "walls": [
+        {"row": 0, "col": 0, "side": "RIGHT"},
+        {"row": 1, "col": 1, "side": "DOWN"}
+      ],
+      "seals": [
+        {"id": "s1", "color": "RED", "row": 0, "col": 0}
+      ],
+      "destinations": [
+        {"color": "RED", "row": 1, "col": 1}
+      ],
+      "optimalMoves": 5,
+      "optimalSolution": [
+        {"sealId": "s1", "direction": "DOWN"},
+        {"sealId": "s1", "direction": "RIGHT"},
+        {"sealId": "s1", "direction": "UP"},
+        {"sealId": "s1", "direction": "LEFT"},
+        {"sealId": "s1", "direction": "DOWN"}
+      ],
+      "instruction": "Seals slide until they hit a wall. Use the walls to stop where you need!"
+    },
+    {
+      "id": "tutorial_03",
+      "rows": 3,
+      "cols": 3,
+      "walls": [
+        {"row": 1, "col": 1, "side": "DOWN"}
+      ],
+      "seals": [
+        {"id": "s1", "color": "RED", "row": 0, "col": 0},
+        {"id": "s2", "color": "BLUE", "row": 2, "col": 2}
+      ],
+      "destinations": [
+        {"color": "RED", "row": 1, "col": 1}
+      ],
+      "optimalMoves": 3,
+      "optimalSolution": [
+        {"sealId": "s2", "direction": "UP"},
+        {"sealId": "s1", "direction": "RIGHT"},
+        {"sealId": "s1", "direction": "DOWN"}
+      ],
+      "instruction": "Seals also stop when they hit another seal. Move the blue seal first to create a blocker!"
+    }
+  ]
+}

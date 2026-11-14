@@ -1,0 +1,130 @@
+{
+  "levels": [
+    {
+      "id": "hard_01",
+      "rows": 8,
+      "cols": 8,
+      "walls": [
+        {
+          "row": 1,
+          "col": 3,
+          "side": "DOWN"
+        },
+        {
+          "row": 3,
+          "col": 6,
+          "side": "LEFT"
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "side": "RIGHT"
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "side": "UP"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "side": "RIGHT"
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "side": "DOWN"
+        }
+      ],
+      "seals": [
+        {
+          "id": "s1",
+          "color": "RED",
+          "row": 0,
+          "col": 0
+        },
+        {
+          "id": "s2",
+          "color": "BLUE",
+          "row": 7,
+          "col": 7
+        },
+        {
+          "id": "s3",
+          "color": "GREEN",
+          "row": 0,
+          "col": 7
+        },
+        {
+          "id": "s4",
+          "color": "YELLOW",
+          "row": 7,
+          "col": 0
+        }
+      ],
+      "destinations": [
+        {
+          "color": "RED",
+          "row": 1,
+          "col": 3
+        },
+        {
+          "color": "BLUE",
+          "row": 6,
+          "col": 4
+        }
+      ],
+      "optimalMoves": 12,
+      "optimalSolution": [
+        {
+          "sealId": "s1",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s1",
+          "direction": "RIGHT"
+        },
+        {
+          "sealId": "s3",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s3",
+          "direction": "LEFT"
+        },
+        {
+          "sealId": "s1",
+          "direction": "UP"
+        },
+        {
+          "sealId": "s3",
+          "direction": "DOWN"
+        },
+        {
+          "sealId": "s2",
+          "direction": "LEFT"
+        },
+        {
+          "sealId": "s2",
+          "direction": "UP"
+        },
+        {
+          "sealId": "s4",
+          "direction": "RIGHT"
+        },
+        {
+          "sealId": "s4",
+          "direction": "UP"
+        },
+        {
+          "sealId": "s1",
+          "direction": "LEFT"
+        },
+        {
+          "sealId": "s1",
+          "direction": "DOWN"
+        }
+      ]
+    }
+  ]
+}

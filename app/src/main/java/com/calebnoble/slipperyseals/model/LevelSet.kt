@@ -1,0 +1,9 @@
+package com.calebnoble.slipperyseals.model
+
+enum class LevelSet(val displayName: String, val fileName: String) {
+    TUTORIAL("Tutorial", "tutorial.json"),
+    EASY("Easy", "easy.json"),
+    MEDIUM("Medium", "medium.json"),
+    HARD("Hard", "hard.json"),
+    EXPERT("Expert", "expert.json")
+}
