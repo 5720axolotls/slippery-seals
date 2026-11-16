@@ -1,10 +1,14 @@
 package com.calebnoble.slipperyseals.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,68 +47,11 @@ fun GameScreen(
     val gameState = viewModel.gameState
     val wallSet = remember(levelData) { GameEngine.buildWallSet(levelData) }
     var showMenu by remember { mutableStateOf(false) }
+    val isLandscape =
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        GameTopBar(
-            moveCount = gameState.moveCount,
-            optimalMoves = levelData.optimalMoves,
-            canUndo = gameState.history.isNotEmpty(),
-            canHint = !gameState.isSolved,
-            isHintLoading = viewModel.isHintLoading,
-            onUndo = viewModel::onUndo,
-            onReset = viewModel::onReset,
-            onHint = viewModel::onHint,
-            onBack = onBack,
-            onMenu = { showMenu = true }
-        )
-
-        viewModel.hintMessage?.let { message ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = message,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    TextButton(onClick = viewModel::dismissHint) {
-                        Text("Dismiss")
-                    }
-                }
-            }
-        }
-
-        if (levelData.instruction != null) {
-            Text(
-                text = levelData.instruction,
-                fontSize = 28.sp,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center
-        ) {
+    val boardArea: @Composable (Modifier) -> Unit = { modifier ->
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
             GameBoard(
                 gameState = gameState,
                 wallSet = wallSet,
@@ -148,6 +95,112 @@ fun GameScreen(
                     }
                 }
             }
+        }
+    }
+
+    val hintBanner: @Composable (Modifier) -> Unit = { modifier ->
+        viewModel.hintMessage?.let { message ->
+            Card(
+                modifier = modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = message,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    TextButton(onClick = viewModel::dismissHint) {
+                        Text("Dismiss")
+                    }
+                }
+            }
+        }
+    }
+
+    if (isLandscape) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            boardArea(Modifier.weight(1f).fillMaxHeight())
+            Column(
+                modifier = Modifier
+                    .width(160.dp)
+                    .fillMaxHeight()
+                    .padding(8.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Moves: ${gameState.moveCount} / ${levelData.optimalMoves}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                OutlinedButton(
+                    onClick = viewModel::onUndo,
+                    enabled = gameState.history.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Undo") }
+                OutlinedButton(
+                    onClick = viewModel::onReset,
+                    enabled = gameState.moveCount > 0,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Reset") }
+                OutlinedButton(
+                    onClick = viewModel::onHint,
+                    enabled = !gameState.isSolved && !viewModel.isHintLoading,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (viewModel.isHintLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    } else {
+                        Text("Hint")
+                    }
+                }
+                Button(onClick = { showMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Menu")
+                }
+                OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+                    Text("Back")
+                }
+                hintBanner(Modifier.fillMaxWidth())
+            }
+        }
+    } else {
+        Column(modifier = Modifier.fillMaxSize()) {
+            GameTopBar(
+                moveCount = gameState.moveCount,
+                optimalMoves = levelData.optimalMoves,
+                canUndo = gameState.history.isNotEmpty(),
+                canHint = !gameState.isSolved,
+                isHintLoading = viewModel.isHintLoading,
+                onUndo = viewModel::onUndo,
+                onReset = viewModel::onReset,
+                onHint = viewModel::onHint,
+                onBack = onBack,
+                onMenu = { showMenu = true }
+            )
+
+            hintBanner(Modifier.fillMaxWidth())
+
+            if (levelData.instruction != null) {
+                Text(
+                    text = levelData.instruction,
+                    fontSize = 28.sp,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+            }
+
+            boardArea(Modifier.fillMaxWidth().weight(1f))
         }
     }
 

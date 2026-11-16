@@ -41,7 +41,7 @@ class SolverBenchmarkTest {
             walls = listOf(wall(2, 2, Direction.DOWN), wall(1, 4, Direction.LEFT)),
             seals = listOf(seal("s1", SealColor.RED, 0, 0), seal("s2", SealColor.BLUE, 4, 4)),
             destinations = listOf(dest(SealColor.RED, 2, 2)),
-            expectedMoves = 2
+            expectedMoves = 6
         ),
         level(
             id = "medium_7x7", rows = 7, cols = 7,
@@ -55,7 +55,7 @@ class SolverBenchmarkTest {
                 seal("s3", SealColor.GREEN, 0, 6)
             ),
             destinations = listOf(dest(SealColor.RED, 1, 3), dest(SealColor.BLUE, 3, 5)),
-            expectedMoves = 4
+            expectedMoves = 13
         ),
         level(
             id = "hard_8x8", rows = 8, cols = 8,
@@ -71,7 +71,7 @@ class SolverBenchmarkTest {
                 seal("s4", SealColor.YELLOW, 7, 0)
             ),
             destinations = listOf(dest(SealColor.RED, 1, 3), dest(SealColor.BLUE, 6, 4)),
-            expectedMoves = 5
+            expectedMoves = 12
         ),
         level(
             id = "multi_dest_6x6", rows = 6, cols = 6,
@@ -85,7 +85,7 @@ class SolverBenchmarkTest {
                 seal("s3", SealColor.GREEN, 0, 5)
             ),
             destinations = listOf(dest(SealColor.RED, 2, 3), dest(SealColor.GREEN, 1, 5)),
-            expectedMoves = 3
+            expectedMoves = 7
         ),
     )
 

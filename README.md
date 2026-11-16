@@ -12,13 +12,18 @@ generate levels.
 - Jetpack Compose UI with Material 3 theming
 - Multiple level sets (tutorial, easy, medium, hard, expert, classic) loaded from
   JSON assets in `app/src/main/assets/levels/`
+- 25+ levels per difficulty, each shipping with its precomputed optimal solution
+  (solved offline by the native C solver, so the app never has to solve them)
 - Progress tracking across levels
+- Portrait and landscape layouts — in landscape the board is centered with the
+  controls on the side
 - An A* solver (Kotlin in-app, plus a standalone Python/C toolchain) for
   verifying and generating puzzles
-- **Live hints** — the in-app A* solver runs from the current board to suggest
-  the next optimal move
-- **Random Puzzle** — generate a fresh, solvable puzzle on-device at Easy/Medium/
-  Hard difficulty (ephemeral; each board is verified by the in-app solver)
+- **Live hints** — shipped levels use their baked solution; random puzzles fall
+  back to the in-app A* solver
+- **Random Puzzle** — generate a fresh puzzle on-device at Easy/Medium/Hard
+  (verified solvable) or Huge 12×12 (shipped unverified — too large to solve
+  on-device). Random puzzles are ephemeral
 
 ## Requirements
 

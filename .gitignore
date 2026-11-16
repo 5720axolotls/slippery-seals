@@ -12,6 +12,7 @@ local.properties
 
 # Solver build artifacts
 solver/*.so
+solver/*.dylib
 solver/profile_out
 
 # Python

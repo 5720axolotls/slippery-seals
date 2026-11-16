@@ -13,8 +13,15 @@ data class GeneratorConfig(
     val minMoves: Int,
     val maxMoves: Int,
     val nDestinations: Int = 1,
-    val maxAttempts: Int = 200,
-    val maxSolverNodes: Int = 150_000,
+    val maxAttempts: Int = 400,
+    // Per-candidate solver budget. If a candidate isn't solved within this many
+    // nodes we abandon it and try a fresh random board rather than grinding.
+    val maxSolverNodes: Int = 60_000,
+    // Overall wall-clock budget for the whole generate+solve loop.
+    val timeBudgetMs: Long = 8_000,
+    // When false, skip solving entirely and ship an unverified board. Used for
+    // very large boards where solving on-device is impractical.
+    val solve: Boolean = true,
 )
 
 /**
@@ -35,22 +42,40 @@ object LevelGenerator {
     val EASY = GeneratorConfig(rows = 5, cols = 5, nSeals = 2, nWalls = 3, minMoves = 2, maxMoves = 4)
     val MEDIUM = GeneratorConfig(rows = 7, cols = 7, nSeals = 3, nWalls = 5, minMoves = 4, maxMoves = 7)
     val HARD = GeneratorConfig(rows = 8, cols = 8, nSeals = 4, nWalls = 6, minMoves = 6, maxMoves = 9)
+    // Too large to solve on-device — shipped unverified, no optimal/hint.
+    val HUGE = GeneratorConfig(
+        rows = 12, cols = 12, nSeals = 4, nWalls = 12,
+        minMoves = 0, maxMoves = 0, solve = false,
+    )
 
     /**
-     * Returns a solvable level whose optimal solution length falls within the
-     * config's move range, or null if none is found within maxAttempts.
-     * This is CPU-bound — call it off the main thread.
+     * Returns a generated level, or null if none is produced within the config's
+     * attempt/time budget. For solvable presets the board is verified by the A*
+     * solver and its optimal solution is attached; a candidate that isn't solved
+     * within the per-candidate node budget is abandoned and another is tried.
+     * CPU-bound — call it off the main thread.
      */
     fun generateVerified(config: GeneratorConfig, random: Random, id: String): LevelData? {
+        if (!config.solve) {
+            repeat(config.maxAttempts) {
+                val candidate = buildCandidate(config, random) ?: return@repeat
+                return candidate.copy(id = id)
+            }
+            return null
+        }
+
         val solver = AStarSolver(
             name = "gen",
             heuristic = Heuristics.combined(Heuristics.minAxisMoves(), Heuristics.unmatchedCount()),
             maxNodes = config.maxSolverNodes,
         )
+        val deadline = System.nanoTime() + config.timeBudgetMs * 1_000_000
         repeat(config.maxAttempts) {
+            if (System.nanoTime() > deadline) return null
             val candidate = buildCandidate(config, random) ?: return@repeat
+            // An empty path means the solver hit its node cap before finding a
+            // goal — treat that candidate as too slow and move on.
             val moves = solver.solve(candidate)?.moves ?: return@repeat
-            // An empty path means the solver hit its node cap before finding a goal.
             if (moves.isEmpty() || moves.size < config.minMoves || moves.size > config.maxMoves) {
                 return@repeat
             }

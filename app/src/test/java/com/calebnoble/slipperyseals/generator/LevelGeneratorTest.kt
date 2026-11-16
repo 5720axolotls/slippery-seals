@@ -48,4 +48,17 @@ class LevelGeneratorTest {
             assertEquals(level.optimalMoves, result!!.moves.size)
         }
     }
+
+    @Test
+    fun hugePresetShipsUnverifiedBoardWithoutSolving() {
+        val level = LevelGenerator.generateVerified(LevelGenerator.HUGE, Random(99), "huge")
+        assertNotNull(level)
+        level!!
+        assertEquals(12, level.rows)
+        assertEquals(12, level.cols)
+        assertEquals(LevelGenerator.HUGE.nSeals, level.seals.size)
+        // Not solved on-device, so no optimal data is attached.
+        assertEquals(0, level.optimalMoves)
+        assertTrue(level.optimalSolution.isEmpty())
+    }
 }

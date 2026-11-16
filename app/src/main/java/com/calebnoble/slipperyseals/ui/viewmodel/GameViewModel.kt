@@ -21,11 +21,12 @@ class GameViewModel(
 
     private val wallSet: Set<Wall> = GameEngine.buildWallSet(levelData)
 
-    // The same A* solver used offline to generate levels, run live from the
-    // current board so hints stay correct even after the player has moved.
+    // Fallback solver for puzzles that don't ship a precomputed solution (i.e.
+    // random puzzles). Bounded so it never hangs the hint on a huge board.
     private val solver = AStarSolver(
         name = "hint",
-        heuristic = Heuristics.combined(Heuristics.minAxisMoves(), Heuristics.unmatchedCount())
+        heuristic = Heuristics.combined(Heuristics.minAxisMoves(), Heuristics.unmatchedCount()),
+        maxNodes = 150_000
     )
 
     var gameState by mutableStateOf(
@@ -122,13 +123,19 @@ class GameViewModel(
     }
 
     /**
-     * Solves from the current board and suggests the next optimal move: selects
-     * the relevant seal (so its move arrows appear) and posts a short message.
-     * The solve runs off the main thread since it can expand many nodes.
+     * Suggests the next optimal move: selects the relevant seal (so its move
+     * arrows appear) and posts a short message. Shipped levels carry a
+     * precomputed solution, so no solving happens unless the player has left the
+     * optimal path or the puzzle is a random one without a baked solution.
      */
     fun onHint() {
         val state = gameState
         if (state.isSolved || isHintLoading) return
+
+        bakedNextMove()?.let {
+            applyHint(it)
+            return
+        }
 
         isHintLoading = true
         hintMessage = null
@@ -139,15 +146,42 @@ class GameViewModel(
 
             val nextMove = result?.moves?.firstOrNull()
             if (nextMove == null) {
-                hintMessage = "No solution from here — try Undo or Reset."
+                hintMessage = "No hint available for this puzzle."
                 return@launch
             }
-
-            selectSeal(nextMove.sealId)
-            val seal = state.seals.first { it.id == nextMove.sealId }
-            val color = seal.color.name.lowercase().replaceFirstChar { it.uppercase() }
-            hintMessage = "Hint: slide the $color seal ${arrowFor(nextMove.direction)}"
+            applyHint(nextMove)
         }
+    }
+
+    /**
+     * Finds the next move from the shipped solution by replaying it from the
+     * start and matching the current board. Returns null when the level has no
+     * baked solution or the player has diverged from the optimal path.
+     */
+    private fun bakedNextMove(): Move? {
+        val solution = levelData.optimalSolution
+        if (solution.isEmpty()) return null
+
+        var seals = levelData.seals
+        if (positionsMatch(seals, gameState.seals)) return solution.first()
+        for (i in solution.indices) {
+            seals = GameEngine.executeMove(solution[i].sealId, solution[i].direction, seals, wallSet)
+            if (positionsMatch(seals, gameState.seals)) return solution.getOrNull(i + 1)
+        }
+        return null
+    }
+
+    private fun positionsMatch(a: List<Seal>, b: List<Seal>): Boolean {
+        if (a.size != b.size) return false
+        val byId = b.associate { it.id to it.position }
+        return a.all { byId[it.id] == it.position }
+    }
+
+    private fun applyHint(move: Move) {
+        selectSeal(move.sealId)
+        val seal = gameState.seals.first { it.id == move.sealId }
+        val color = seal.color.name.lowercase().replaceFirstChar { it.uppercase() }
+        hintMessage = "Hint: slide the $color seal ${arrowFor(move.direction)}"
     }
 
     fun dismissHint() {

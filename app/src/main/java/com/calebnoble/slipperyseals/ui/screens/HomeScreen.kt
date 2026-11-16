@@ -96,6 +96,7 @@ fun HomeScreen(
             "Easy" to LevelGenerator.EASY,
             "Medium" to LevelGenerator.MEDIUM,
             "Hard" to LevelGenerator.HARD,
+            "Huge" to LevelGenerator.HUGE,
         )
         AlertDialog(
             onDismissRequest = { showDifficultyDialog = false },
