@@ -73,8 +73,11 @@ Kotlin 2.0.21), so no separate Gradle install is needed.
 # Install on a connected device/emulator
 ./gradlew installDebug
 
-# Run unit tests
+# Run unit tests (fast; excludes the slow solver benchmark)
 ./gradlew test
+
+# Include the solver benchmark suite (uninformed BFS over large boards — minutes)
+./gradlew test -PrunBenchmarks
 ```
 
 The debug APK is written to `app/build/outputs/apk/debug/`.

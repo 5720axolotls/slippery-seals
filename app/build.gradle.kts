@@ -38,6 +38,14 @@ android {
     }
 }
 
+// SolverBenchmarkTest runs an uninformed BFS over large boards and takes many
+// minutes. Keep it out of the default test run; opt in with -PrunBenchmarks.
+tasks.withType<Test>().configureEach {
+    if (!project.hasProperty("runBenchmarks")) {
+        exclude("**/SolverBenchmarkTest*")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
