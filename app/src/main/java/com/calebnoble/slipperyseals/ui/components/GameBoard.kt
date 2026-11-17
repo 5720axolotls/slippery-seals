@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -45,8 +44,10 @@ fun GameBoard(
 
     Canvas(
         modifier = modifier
-            .fillMaxWidth()
             .padding(16.dp)
+            // No fillMaxWidth: let aspectRatio pick the largest size that fits
+            // within both the available width and height, so the board isn't
+            // cropped in landscape (a wide, short area).
             .aspectRatio(cols.toFloat() / rows.toFloat())
             .pointerInput(rows, cols, gameState.selectedSealId, gameState.validMoves.keys.toSet()) {
                 detectTapGestures(
