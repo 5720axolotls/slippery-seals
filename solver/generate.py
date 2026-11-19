@@ -2,8 +2,10 @@
 """Generate random Slippery Seals levels and filter by optimal move count."""
 from __future__ import annotations
 import json
+import multiprocessing as mp
 import random
 import sys
+import time
 from dataclasses import dataclass
 
 from engine import (
@@ -33,6 +35,11 @@ class GeneratorConfig:
     max_moves: int = 8
     max_attempts: int = 5000
     max_solver_nodes: int = 500_000
+    time_budget_s: float = 300.0
+    # Per-candidate solve timeout. A single solve runs in a child process so an
+    # unsolvable board that would otherwise churn can be killed and skipped,
+    # keeping the overall time budget responsive. None disables it.
+    solve_timeout_s: float | None = None
 
 
 def generate_level(config: GeneratorConfig, rng: random.Random) -> LevelData | None:
@@ -90,7 +97,9 @@ def generate_level(config: GeneratorConfig, rng: random.Random) -> LevelData | N
     )
 
 
-def solve_level(level: LevelData, max_nodes: int) -> int | None:
+def solve_level(level: LevelData, max_nodes: int) -> list[Move] | None:
+    """Returns the optimal solution (A* with an admissible heuristic, so the
+    returned path is optimal), or None if no solution is found within max_nodes."""
     if _HAS_NATIVE:
         solver = NativeSolver("gen", 1, max_nodes=max_nodes)
     else:
@@ -98,23 +107,62 @@ def solve_level(level: LevelData, max_nodes: int) -> int | None:
     result = solver.solve(level)
     if result is None or not result.moves:
         return None
-    return len(result.moves)
+    return result.moves
+
+
+def _solve_into_queue(level: LevelData, max_nodes: int, queue) -> None:
+    try:
+        queue.put(solve_level(level, max_nodes))
+    except Exception:
+        queue.put(None)
+
+
+def solve_level_timed(
+    level: LevelData, max_nodes: int, timeout_s: float | None
+) -> list[Move] | None:
+    """Like solve_level, but abandons the solve (returns None) if it exceeds
+    timeout_s. The solve runs in a child process because a stuck native solve
+    can't be interrupted within the calling thread."""
+    if timeout_s is None:
+        return solve_level(level, max_nodes)
+
+    ctx = mp.get_context("fork")
+    queue = ctx.Queue()
+    proc = ctx.Process(target=_solve_into_queue, args=(level, max_nodes, queue))
+    proc.start()
+    proc.join(timeout_s)
+    if proc.is_alive():
+        proc.terminate()
+        proc.join()
+        return None
+    try:
+        return queue.get_nowait()
+    except Exception:
+        return None
 
 
 def generate_batch(
     config: GeneratorConfig,
     count: int,
     seed: int | None = None,
-) -> list[tuple[LevelData, int]]:
+) -> list[tuple[LevelData, list[Move]]]:
     rng = random.Random(seed)
-    found: list[tuple[LevelData, int]] = []
+    found: list[tuple[LevelData, list[Move]]] = []
     attempts = 0
 
     unsolvable = 0
     too_easy = 0
     too_hard = 0
 
+    start = time.monotonic()
     while len(found) < count and attempts < config.max_attempts:
+        if (elapsed := time.monotonic() - start) > config.time_budget_s:
+            print(
+                f"  ... time budget {config.time_budget_s:.0f}s reached after {elapsed:.0f}s: "
+                f"stopping with {len(found)}/{count} levels",
+                flush=True,
+            )
+            break
         attempts += 1
         if attempts % 500 == 0:
             print(
@@ -127,22 +175,23 @@ def generate_batch(
         if level is None:
             continue
 
-        moves = solve_level(level, config.max_solver_nodes)
+        moves = solve_level_timed(level, config.max_solver_nodes, config.solve_timeout_s)
         if moves is None:
             unsolvable += 1
             continue
 
-        if moves < config.min_moves:
+        n_moves = len(moves)
+        if n_moves < config.min_moves:
             too_easy += 1
             continue
-        if moves > config.max_moves:
+        if n_moves > config.max_moves:
             too_hard += 1
             continue
 
-        level.optimal_moves = moves
+        level.optimal_moves = n_moves
         found.append((level, moves))
         print(
-            f"  [{len(found)}/{count}] {moves} moves "
+            f"  [{len(found)}/{count}] {n_moves} moves "
             f"({attempts} attempts)",
             flush=True,
         )
@@ -150,12 +199,9 @@ def generate_batch(
     return found
 
 
-def level_to_json(level: LevelData, level_id: str) -> dict:
-    if _HAS_NATIVE:
-        solver = NativeSolver("gen", 1, max_nodes=5_000_000)
-    else:
-        solver = AStarSolver("gen", axis_with_setup())
-    result = solver.solve(level)
+def level_to_json(level: LevelData, moves: list[Move], level_id: str) -> dict:
+    # Reuse the solution found during generation; re-solving here is wasteful and
+    # on large boards can run for minutes past the generation time budget.
     return {
         "id": level_id,
         "rows": level.rows,
@@ -172,11 +218,11 @@ def level_to_json(level: LevelData, level_id: str) -> dict:
             {"color": d.color, "row": d.pos.row, "col": d.pos.col}
             for d in level.destinations
         ],
-        "optimalMoves": len(result.moves) if result else 0,
+        "optimalMoves": len(moves),
         "optimalSolution": [
             {"sealId": m.seal_id, "direction": m.direction.value}
-            for m in result.moves
-        ] if result else [],
+            for m in moves
+        ],
     }
 
 
@@ -214,6 +260,14 @@ def main():
     parser.add_argument("--seals", type=int, default=None)
     parser.add_argument("--dests", type=int, default=None)
     parser.add_argument("--walls", type=int, default=None)
+    parser.add_argument("--max-time", type=float, default=None,
+                        help="Wall-clock budget in seconds; stop and ship what was found")
+    parser.add_argument("--max-nodes", type=int, default=None,
+                        help="Per-candidate solver node cap; bounds each solve so the "
+                             "time budget stays responsive (a candidate exceeding it is skipped)")
+    parser.add_argument("--solve-timeout", type=float, default=None,
+                        help="Per-candidate solve timeout in seconds; a slower candidate "
+                             "is skipped (needed on large boards to bound unsolvable churn)")
     args = parser.parse_args()
 
     config = PRESETS[args.preset]
@@ -231,6 +285,12 @@ def main():
         config.n_destinations = args.dests
     if args.walls is not None:
         config.n_walls = args.walls
+    if args.max_time is not None:
+        config.time_budget_s = args.max_time
+    if args.max_nodes is not None:
+        config.max_solver_nodes = args.max_nodes
+    if args.solve_timeout is not None:
+        config.solve_timeout_s = args.solve_timeout
 
     print(f"Generating {args.count} {args.preset} levels "
           f"({config.rows}x{config.cols}, {config.n_seals} seals, "
@@ -246,8 +306,8 @@ def main():
     print(f"\nGenerated {len(results)} levels")
 
     levels_json = [
-        level_to_json(level, f"{args.preset}_{i+1:02d}")
-        for i, (level, _) in enumerate(results)
+        level_to_json(level, moves, f"{args.preset}_{i+1:02d}")
+        for i, (level, moves) in enumerate(results)
     ]
 
     output = {"levels": levels_json}
