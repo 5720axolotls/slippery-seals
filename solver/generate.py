@@ -40,9 +40,15 @@ class GeneratorConfig:
     # unsolvable board that would otherwise churn can be killed and skipped,
     # keeping the overall time budget responsive. None disables it.
     solve_timeout_s: float | None = None
+    # Board style: "random" scatters single wall edges; "ricochet" builds a
+    # Ricochet Robots-style board (L-shaped wall pairs + a blocked 2x2 center).
+    style: str = "random"
 
 
 def generate_level(config: GeneratorConfig, rng: random.Random) -> LevelData | None:
+    if config.style == "ricochet":
+        return generate_ricochet_level(config, rng)
+
     rows, cols = config.rows, config.cols
     all_cells = [(r, c) for r in range(rows) for c in range(cols)]
 
@@ -85,6 +91,89 @@ def generate_level(config: GeneratorConfig, rng: random.Random) -> LevelData | N
             used_wall_edges.add((r, c, side))
             used_wall_edges.add((nr, nc, side.opposite()))
             break
+
+    return LevelData(
+        id="candidate",
+        rows=rows,
+        cols=cols,
+        walls=walls,
+        seals=seals,
+        destinations=destinations,
+        optimal_moves=0,
+    )
+
+
+# The two perpendicular sides that form each L-shaped wall corner.
+_L_CORNERS = [
+    (Direction.UP, Direction.LEFT),
+    (Direction.UP, Direction.RIGHT),
+    (Direction.DOWN, Direction.LEFT),
+    (Direction.DOWN, Direction.RIGHT),
+]
+
+
+def generate_ricochet_level(config: GeneratorConfig, rng: random.Random) -> LevelData | None:
+    """Build a Ricochet Robots-style board: a blocked 2x2 center and scattered
+    L-shaped wall corners, with seals and a single goal placed off the center."""
+    rows, cols = config.rows, config.cols
+    walls: list[Wall] = []
+    used: set[tuple[int, int, Direction]] = set()
+
+    def add_edge(r: int, c: int, side: Direction) -> None:
+        if (r, c, side) in used:
+            return
+        dr, dc = side.delta()
+        walls.append(Wall(Pos(r, c), side))
+        used.add((r, c, side))
+        used.add((r + dr, c + dc, side.opposite()))
+
+    # Blocked 2x2 center: wall the outer edges so seals slide around it.
+    r0, r1 = rows // 2 - 1, rows // 2
+    c0, c1 = cols // 2 - 1, cols // 2
+    center_cells = {(r0, c0), (r0, c1), (r1, c0), (r1, c1)}
+    add_edge(r0, c0, Direction.UP)
+    add_edge(r0, c1, Direction.UP)
+    add_edge(r1, c0, Direction.DOWN)
+    add_edge(r1, c1, Direction.DOWN)
+    add_edge(r0, c0, Direction.LEFT)
+    add_edge(r1, c0, Direction.LEFT)
+    add_edge(r0, c1, Direction.RIGHT)
+    add_edge(r1, c1, Direction.RIGHT)
+
+    # Scattered L-shaped wall corners on interior cells.
+    placed = 0
+    for _ in range(config.n_walls * 40):
+        if placed >= config.n_walls:
+            break
+        r = rng.randint(1, rows - 2)
+        c = rng.randint(1, cols - 2)
+        if (r, c) in center_cells:
+            continue
+        s1, s2 = rng.choice(_L_CORNERS)
+        if (r, c, s1) in used or (r, c, s2) in used:
+            continue
+        add_edge(r, c, s1)
+        add_edge(r, c, s2)
+        placed += 1
+
+    free_cells = [
+        (r, c) for r in range(rows) for c in range(cols) if (r, c) not in center_cells
+    ]
+    cells = rng.sample(free_cells, config.n_seals + config.n_destinations)
+    seal_cells = cells[: config.n_seals]
+    dest_cells = cells[config.n_seals :]
+
+    colors = COLORS[: config.n_seals]
+    seals = [Seal(f"s{i+1}", colors[i], Pos(r, c)) for i, (r, c) in enumerate(seal_cells)]
+
+    dest_colors = rng.sample(colors, config.n_destinations)
+    destinations = [
+        Destination(color, Pos(r, c)) for color, (r, c) in zip(dest_colors, dest_cells)
+    ]
+
+    seal_map = {(s.color, s.pos) for s in seals}
+    if any((d.color, d.pos) in seal_map for d in destinations):
+        return None
 
     return LevelData(
         id="candidate",
@@ -242,6 +331,11 @@ PRESETS = {
     "expert": GeneratorConfig(
         rows=10, cols=10, n_seals=5, n_destinations=2, n_walls=10,
         min_moves=15, max_moves=20, max_attempts=50_000, max_solver_nodes=5_000_000,
+    ),
+    "retro": GeneratorConfig(
+        rows=16, cols=16, n_seals=4, n_destinations=1, n_walls=16,
+        min_moves=4, max_moves=20, style="ricochet",
+        max_solver_nodes=200_000, solve_timeout_s=2.0,
     ),
 }
 

@@ -14,6 +14,8 @@ generate levels.
   JSON assets in `app/src/main/assets/levels/`
 - 25+ levels per difficulty, each shipping with its precomputed optimal solution
   (solved offline by the native C solver, so the app never has to solve them)
+- A "Retro" set styled after Ricochet Robots: 16×16 boards with L-shaped wall
+  corners and a blocked 2×2 center
 - Progress tracking across levels
 - Portrait and landscape layouts — in landscape the board is centered with the
   controls on the side
