@@ -140,7 +140,23 @@ def generate_ricochet_level(config: GeneratorConfig, rng: random.Random) -> Leve
     add_edge(r0, c1, Direction.RIGHT)
     add_edge(r1, c1, Direction.RIGHT)
 
-    # Scattered L-shaped wall corners on interior cells.
+    # Border walls: short segments jutting inward from each edge so a seal
+    # sliding along a border stops partway instead of circling the whole map.
+    # On the top/bottom rows these are vertical (LEFT/RIGHT) edges; on the
+    # left/right columns they are horizontal (UP/DOWN) edges.
+    n_border_per_edge = 2
+    for c in rng.sample(range(2, cols - 2), n_border_per_edge):
+        add_edge(0, c, rng.choice([Direction.LEFT, Direction.RIGHT]))
+    for c in rng.sample(range(2, cols - 2), n_border_per_edge):
+        add_edge(rows - 1, c, rng.choice([Direction.LEFT, Direction.RIGHT]))
+    for r in rng.sample(range(2, rows - 2), n_border_per_edge):
+        add_edge(r, 0, rng.choice([Direction.UP, Direction.DOWN]))
+    for r in rng.sample(range(2, rows - 2), n_border_per_edge):
+        add_edge(r, cols - 1, rng.choice([Direction.UP, Direction.DOWN]))
+
+    # Scattered L-shaped wall corners on interior cells. Each corner cell is a
+    # candidate target spot, since its two walls let a seal stop in the crook.
+    l_cells: list[tuple[int, int]] = []
     placed = 0
     for _ in range(config.n_walls * 40):
         if placed >= config.n_walls:
@@ -154,26 +170,28 @@ def generate_ricochet_level(config: GeneratorConfig, rng: random.Random) -> Leve
             continue
         add_edge(r, c, s1)
         add_edge(r, c, s2)
+        l_cells.append((r, c))
         placed += 1
 
-    free_cells = [
-        (r, c) for r in range(rows) for c in range(cols) if (r, c) not in center_cells
-    ]
-    cells = rng.sample(free_cells, config.n_seals + config.n_destinations)
-    seal_cells = cells[: config.n_seals]
-    dest_cells = cells[config.n_seals :]
+    if not l_cells:
+        return None
 
     colors = COLORS[: config.n_seals]
-    seals = [Seal(f"s{i+1}", colors[i], Pos(r, c)) for i, (r, c) in enumerate(seal_cells)]
 
+    # Place the goal in an L-wall corner, the way Ricochet Robots targets sit
+    # against walls so a piece can actually stop on them.
+    dest_cells = rng.sample(l_cells, config.n_destinations)
     dest_colors = rng.sample(colors, config.n_destinations)
     destinations = [
         Destination(color, Pos(r, c)) for color, (r, c) in zip(dest_colors, dest_cells)
     ]
 
-    seal_map = {(s.color, s.pos) for s in seals}
-    if any((d.color, d.pos) in seal_map for d in destinations):
-        return None
+    blocked = center_cells | set(dest_cells)
+    free_cells = [
+        (r, c) for r in range(rows) for c in range(cols) if (r, c) not in blocked
+    ]
+    seal_cells = rng.sample(free_cells, config.n_seals)
+    seals = [Seal(f"s{i+1}", colors[i], Pos(r, c)) for i, (r, c) in enumerate(seal_cells)]
 
     return LevelData(
         id="candidate",
